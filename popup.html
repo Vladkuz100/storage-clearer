@@ -7,10 +7,46 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="container">
+  <div class="container popup-container">
     <h2>Storage Clearer</h2>
     <button id="executeBtn" class="btn btn-primary">Выполнить</button>
     <button id="settingsBtn" class="btn btn-secondary">Настройки</button>
+    
+    <div id="settingsPanel" class="settings-panel" style="display: none;">
+      <div class="form-group">
+        <label for="loginFieldName">Название поля Логин:</label>
+        <input type="text" id="loginFieldName" placeholder="Логин">
+      </div>
+
+      <div class="form-group">
+        <label for="passwordFieldName">Название поля Пароль:</label>
+        <input type="text" id="passwordFieldName" placeholder="Пароль">
+      </div>
+
+      <div class="form-group">
+        <label for="loginValue">Значение для поля Логин:</label>
+        <input type="text" id="loginValue" placeholder="admin">
+      </div>
+
+      <div class="form-group">
+        <label for="passwordValue">Значение для поля Пароль:</label>
+        <input type="text" id="passwordValue" placeholder="admin123">
+      </div>
+
+      <div class="form-group">
+        <div class="switch-label">
+          <span class="switch-text">Автоматический вход</span>
+          <label class="switch">
+            <input type="checkbox" id="autoLogin">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <p class="switch-description">Автоматически нажимать кнопку "Далее" после заполнения формы</p>
+      </div>
+
+      <button id="saveBtn" class="btn btn-primary">Сохранить настройки</button>
+      <div id="status" class="status-message"></div>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

@@ -7,21 +7,24 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   background: #f5f5f5;
-  padding: 20px;
-  min-width: 300px;
+  padding: 0;
+  margin: 0;
+  min-width: 280px;
+  max-width: 320px;
 }
 
-.container {
+.popup-container {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  padding: 16px;
+  box-shadow: none;
+  width: 100%;
 }
 
 h2 {
   color: #333;
-  margin-bottom: 20px;
-  font-size: 20px;
+  margin-bottom: 12px;
+  font-size: 18px;
   font-weight: 600;
 }
 
@@ -53,14 +56,14 @@ input[type="text"]:focus {
 
 .btn {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .btn:last-child {
@@ -108,30 +111,91 @@ input[type="text"]:focus {
   border: 1px solid #c3e6cb;
 }
 
-.toggle-label {
+.settings-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.settings-panel .form-group {
+  margin-bottom: 12px;
+}
+
+.settings-panel input[type="text"] {
+  padding: 8px;
+  font-size: 13px;
+}
+
+/* Свитчер (Toggle Switch) */
+.switch-label {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   cursor: pointer;
   user-select: none;
+  margin-bottom: 4px;
 }
 
-.toggle-label input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
-  cursor: pointer;
-}
-
-.toggle-text {
+.switch-text {
   font-weight: 500;
   color: #333;
+  font-size: 14px;
 }
 
-.toggle-description {
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.switch input:checked + .slider {
+  background-color: #4CAF50;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.switch input:focus + .slider {
+  box-shadow: 0 0 1px #4CAF50;
+}
+
+.switch-description {
   margin-top: 4px;
-  margin-left: 30px;
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
   font-style: italic;
+  line-height: 1.3;
 }
 
