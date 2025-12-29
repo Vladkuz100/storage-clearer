@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const passwordFieldNameInput = document.getElementById('passwordFieldName');
   const loginValueInput = document.getElementById('loginValue');
   const passwordValueInput = document.getElementById('passwordValue');
+  const autoLoginCheckbox = document.getElementById('autoLogin');
   const saveBtn = document.getElementById('saveBtn');
   const statusDiv = document.getElementById('status');
 
@@ -11,12 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     'loginFieldName',
     'passwordFieldName',
     'loginValue',
-    'passwordValue'
+    'passwordValue',
+    'autoLogin'
   ], (result) => {
     loginFieldNameInput.value = result.loginFieldName || 'Логин';
     passwordFieldNameInput.value = result.passwordFieldName || 'Пароль';
     loginValueInput.value = result.loginValue || 'admin';
     passwordValueInput.value = result.passwordValue || 'admin123';
+    autoLoginCheckbox.checked = result.autoLogin || false;
   });
 
   // Сохранение настроек
@@ -25,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
       loginFieldName: loginFieldNameInput.value.trim() || 'Логин',
       passwordFieldName: passwordFieldNameInput.value.trim() || 'Пароль',
       loginValue: loginValueInput.value.trim() || 'admin',
-      passwordValue: passwordValueInput.value.trim() || 'admin123'
+      passwordValue: passwordValueInput.value.trim() || 'admin123',
+      autoLogin: autoLoginCheckbox.checked
     };
 
     chrome.storage.sync.set(settings, () => {

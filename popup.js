@@ -12,7 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'loginFieldName',
         'passwordFieldName',
         'loginValue',
-        'passwordValue'
+        'passwordValue',
+        'autoLogin'
       ]);
 
       // Выполняем скрипт на странице
@@ -52,7 +53,8 @@ function executeMainFunction(settings) {
     loginFieldName,
     passwordFieldName,
     loginValue,
-    passwordValue
+    passwordValue,
+    autoLogin: settings.autoLogin || false
   }));
 
   // Перезагружаем страницу

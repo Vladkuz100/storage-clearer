@@ -22,6 +22,7 @@ function fillFormFields(settings) {
   const passwordFieldName = settings.passwordFieldName || 'Пароль';
   const loginValue = settings.loginValue || 'admin';
   const passwordValue = settings.passwordValue || 'admin123';
+  const autoLogin = settings.autoLogin || false;
 
   // Ищем поле логина
   const loginField = findField(loginFieldName, false);
@@ -33,6 +34,12 @@ function fillFormFields(settings) {
   const passwordField = findField(passwordFieldName, true);
   if (passwordField) {
     setFieldValue(passwordField, passwordValue);
+  }
+
+  // Если включен автоматический вход, нажимаем кнопку "Далее"
+  // Ждем, пока кнопка станет активной (не disabled) после ответа бэкенда
+  if (autoLogin) {
+    waitForButtonAndClick();
   }
 }
 
@@ -72,5 +79,89 @@ function setFieldValue(field, value) {
   field.dispatchEvent(new Event('input', { bubbles: true }));
   field.dispatchEvent(new Event('change', { bubbles: true }));
   field.dispatchEvent(new Event('blur', { bubbles: true }));
+}
+
+// Функция для проверки, что кнопка не в состоянии загрузки
+function isButtonLoading(button) {
+  const text = (button.textContent || button.innerText || '').toLowerCase();
+  const hasSpinner = button.querySelector('[class*="spinner"], [class*="loading"], [class*="Loader"], [class*="Spinner"]');
+  // Проверяем наличие SVG спиннера (но не все SVG - спиннеры, поэтому более точная проверка)
+  const svgSpinner = button.querySelector('svg[class*="spinner"], svg[class*="loading"], svg[class*="Loader"]');
+  return text.includes('loading') || !!hasSpinner || !!svgSpinner;
+}
+
+// Функция для поиска кнопки "Далее"
+function findNextButton() {
+  const allButtons = Array.from(document.querySelectorAll('button, input[type="submit"], [role="button"]'));
+  
+  // 1. Ищем кнопку по тексту "Далее" (приоритетный способ)
+  for (const button of allButtons) {
+    const text = (button.textContent || button.innerText || '').trim();
+    const value = (button.value || '').trim();
+    
+    if (text.toLowerCase().includes('далее') || value.toLowerCase().includes('далее')) {
+      return button;
+    }
+  }
+  
+  // 2. Ищем кнопку submit с классом, содержащим "btn" (CSS модули могут генерировать классы типа btn_abc123)
+  const submitButtons = Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'));
+  for (const button of submitButtons) {
+    const className = button.className || '';
+    const hasBtnClass = className.includes('btn') || button.classList.toString().includes('btn');
+    
+    if (hasBtnClass) {
+      const text = (button.textContent || button.innerText || '').trim();
+      // Если текст пустой или содержит "Далее", это наша кнопка
+      if (!text || text.toLowerCase().includes('далее')) {
+        return button;
+      }
+    }
+  }
+  
+  // 3. Ищем любую кнопку submit в форме (последний вариант)
+  const forms = document.querySelectorAll('form');
+  for (const form of forms) {
+    const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submitBtn) {
+      return submitBtn;
+    }
+  }
+  
+  return null;
+}
+
+// Функция для ожидания активации кнопки и нажатия на неё
+function waitForButtonAndClick() {
+  const maxWaitTime = 2000; // Максимальное время ожидания - 2 секунды
+  const checkInterval = 100; // Проверяем каждые 100мс
+  const startTime = Date.now();
+  
+  const checkButton = () => {
+    const button = findNextButton();
+    
+    if (!button) {
+      // Кнопка еще не найдена, продолжаем искать
+      if (Date.now() - startTime < maxWaitTime) {
+        setTimeout(checkButton, checkInterval);
+      }
+      return;
+    }
+    
+    // Проверяем, что кнопка активна (не disabled) и не в состоянии загрузки
+    if (!button.disabled && !isButtonLoading(button)) {
+      // Кнопка готова, нажимаем
+      button.click();
+      return;
+    }
+    
+    // Кнопка еще не готова, продолжаем ждать
+    if (Date.now() - startTime < maxWaitTime) {
+      setTimeout(checkButton, checkInterval);
+    }
+  };
+  
+  // Начинаем проверку
+  checkButton();
 }
 
