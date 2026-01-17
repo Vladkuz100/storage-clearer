@@ -14,24 +14,19 @@
     
     <div id="settingsPanel" class="settings-panel" style="display: none;">
       <div class="form-group">
-        <label for="loginFieldName">Название поля Логин:</label>
-        <input type="text" id="loginFieldName" placeholder="Логин">
+        <label>Роль:</label>
+        <div id="radioGroup" class="radio-group">
+          <!-- Радиобаттоны будут добавлены динамически -->
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="passwordFieldName">Название поля Пароль:</label>
-        <input type="text" id="passwordFieldName" placeholder="Пароль">
+      <div id="rolesContainer">
+        <!-- Блоки ролей будут добавлены динамически -->
       </div>
 
-      <div class="form-group">
-        <label for="loginValue">Значение для поля Логин:</label>
-        <input type="text" id="loginValue" placeholder="admin">
-      </div>
-
-      <div class="form-group">
-        <label for="passwordValue">Значение для поля Пароль:</label>
-        <input type="text" id="passwordValue" placeholder="admin123">
-      </div>
+      <button id="addRoleBtn" class="btn-add-role" title="Добавить новую роль">
+        Добавить запись
+      </button>
 
       <div class="form-group">
         <div class="switch-label">
@@ -51,4 +46,3 @@
   <script src="popup.js"></script>
 </body>
 </html>
-

@@ -139,7 +139,7 @@ function findNextButton() {
 }
 
 // Функция для ожидания активации кнопки и нажатия на неё
-function waitForButtonAndClick(callback) {
+function waitForButtonAndClick() {
   const maxWaitTime = 2000; // Максимальное время ожидания - 2 секунды
   const checkInterval = 100; // Проверяем каждые 100мс
   const startTime = Date.now();
@@ -159,9 +159,6 @@ function waitForButtonAndClick(callback) {
     if (!button.disabled && !isButtonLoading(button)) {
       // Кнопка готова, нажимаем
       button.click();
-      if (callback) {
-        callback();
-      }
       return;
     }
     
@@ -175,168 +172,3 @@ function waitForButtonAndClick(callback) {
   checkButton();
 }
 
-// Функция для ожидания ответа от бэкенда и перехода на исходную страницу
-function waitForBackendResponseAndNavigate(originalUrl) {
-  if (!originalUrl) {
-    return; // Если исходный URL не указан, не переходим
-  }
-
-  const minWaitTime = 50; // Минимальное время ожидания - 50мс
-  const maxWaitTime = 5000; // Максимальное время ожидания - 5 секунд
-  const checkInterval = 50; // Проверяем каждые 50мс
-  const startTime = Date.now();
-  let backendResponded = false;
-  const initialUrl = window.location.href; // Запоминаем начальный URL (страница логина)
-
-  // Отслеживаем изменения в DOM, которые могут указывать на ответ бэкенда
-  // (например, изменение состояния кнопки, появление сообщений об ошибке/успехе)
-  const observer = new MutationObserver(() => {
-    // Проверяем, изменилось ли состояние формы или появились ли сообщения
-    const button = findNextButton();
-    if (button) {
-      // Если кнопка стала неактивной (disabled) или появился индикатор загрузки,
-      // значит идет запрос к бэкенду
-      if (button.disabled || isButtonLoading(button)) {
-        backendResponded = false; // Запрос в процессе
-      } else {
-        // Если кнопка снова активна и не в состоянии загрузки,
-        // возможно, ответ получен (но это не гарантия)
-        // Проверяем наличие сообщений об ошибке или успехе
-        const errorMessages = document.querySelectorAll('[class*="error"], [class*="Error"], [id*="error"], [id*="Error"]');
-        const successMessages = document.querySelectorAll('[class*="success"], [class*="Success"], [id*="success"], [id*="Success"]');
-        
-        if (errorMessages.length > 0 || successMessages.length > 0) {
-          backendResponded = true;
-        }
-      }
-    }
-  });
-
-  // Начинаем наблюдение за изменениями в DOM
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class', 'disabled']
-  });
-
-  // Также отслеживаем сетевые запросы через fetch и XMLHttpRequest
-  const originalFetch = window.fetch;
-  const originalXHROpen = XMLHttpRequest.prototype.open;
-  const originalXHRSend = XMLHttpRequest.prototype.send;
-
-  let activeRequests = 0;
-
-  window.fetch = function(...args) {
-    activeRequests++;
-    return originalFetch.apply(this, args)
-      .then(response => {
-        activeRequests--;
-        if (activeRequests === 0) {
-          backendResponded = true;
-        }
-        return response;
-      })
-      .catch(error => {
-        activeRequests--;
-        if (activeRequests === 0) {
-          backendResponded = true;
-        }
-        throw error;
-      });
-  };
-
-  XMLHttpRequest.prototype.open = function(...args) {
-    this._storageClearerTracked = true;
-    return originalXHROpen.apply(this, args);
-  };
-
-  XMLHttpRequest.prototype.send = function(...args) {
-    if (this._storageClearerTracked) {
-      activeRequests++;
-      
-      const originalOnReadyStateChange = this.onreadystatechange;
-      this.onreadystatechange = function() {
-        if (this.readyState === 4) {
-          activeRequests--;
-          if (activeRequests === 0) {
-            backendResponded = true;
-          }
-        }
-        if (originalOnReadyStateChange) {
-          originalOnReadyStateChange.apply(this, arguments);
-        }
-      };
-      
-      this.addEventListener('load', function() {
-        activeRequests--;
-        if (activeRequests === 0) {
-          backendResponded = true;
-        }
-      });
-      
-      this.addEventListener('error', function() {
-        activeRequests--;
-        if (activeRequests === 0) {
-          backendResponded = true;
-        }
-      });
-    }
-    
-    return originalXHRSend.apply(this, args);
-  };
-
-  const checkAndNavigate = () => {
-    const elapsed = Date.now() - startTime;
-    const currentUrl = window.location.href;
-    
-    // Проверяем, изменился ли URL (бэкенд сделал редирект)
-    const urlChanged = currentUrl !== initialUrl;
-    
-    // Если URL изменился и прошло минимум 50мс, сразу переходим на исходную страницу
-    if (urlChanged && elapsed >= minWaitTime && currentUrl !== originalUrl) {
-      observer.disconnect();
-      window.fetch = originalFetch;
-      XMLHttpRequest.prototype.open = originalXHROpen;
-      XMLHttpRequest.prototype.send = originalXHRSend;
-      window.location.href = originalUrl;
-      return;
-    }
-    
-    // Если прошло минимум 50мс и (бэкенд ответил или прошло максимум времени)
-    if (elapsed >= minWaitTime && (backendResponded || elapsed >= maxWaitTime)) {
-      // Останавливаем наблюдение
-      observer.disconnect();
-      
-      // Восстанавливаем оригинальные функции
-      window.fetch = originalFetch;
-      XMLHttpRequest.prototype.open = originalXHROpen;
-      XMLHttpRequest.prototype.send = originalXHRSend;
-      
-      // Переходим на исходную страницу, если мы еще не на ней
-      if (currentUrl !== originalUrl) {
-        window.location.href = originalUrl;
-      }
-      return;
-    }
-    
-    // Продолжаем проверку
-    if (elapsed < maxWaitTime) {
-      setTimeout(checkAndNavigate, checkInterval);
-    } else {
-      // Достигнут максимум времени, переходим в любом случае
-      observer.disconnect();
-      window.fetch = originalFetch;
-      XMLHttpRequest.prototype.open = originalXHROpen;
-      XMLHttpRequest.prototype.send = originalXHRSend;
-      
-      // Переходим на исходную страницу
-      if (currentUrl !== originalUrl) {
-        window.location.href = originalUrl;
-      }
-    }
-  };
-
-  // Начинаем проверку
-  checkAndNavigate();
-}

@@ -4,26 +4,172 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsPanel = document.getElementById('settingsPanel');
   const saveBtn = document.getElementById('saveBtn');
   const statusDiv = document.getElementById('status');
-  
-  const loginFieldNameInput = document.getElementById('loginFieldName');
-  const passwordFieldNameInput = document.getElementById('passwordFieldName');
-  const loginValueInput = document.getElementById('loginValue');
-  const passwordValueInput = document.getElementById('passwordValue');
+  const radioGroup = document.getElementById('radioGroup');
+  const rolesContainer = document.getElementById('rolesContainer');
+  const addRoleBtn = document.getElementById('addRoleBtn');
   const autoLoginCheckbox = document.getElementById('autoLogin');
 
+  let roles = [];
+  let selectedRoleId = null;
+
+  // Генерация уникального ID для роли
+  function generateRoleId() {
+    return 'role_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Создание блока роли
+  function createRoleBlock(role) {
+    const roleBlock = document.createElement('div');
+    roleBlock.className = 'role-block';
+    roleBlock.dataset.roleId = role.id;
+    
+    roleBlock.innerHTML = `
+      <div class="role-header">
+        <input type="text" class="role-login" value="${role.login || ''}" placeholder="Логин">
+      </div>
+      <div class="role-password-block">
+        <input type="password" class="role-password" value="${role.password || ''}" placeholder="Пароль">
+      </div>
+      <button type="button" class="btn-remove-role" title="Удалить роль">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    `;
+    
+    // Обработчик удаления роли
+    const removeBtn = roleBlock.querySelector('.btn-remove-role');
+    removeBtn.addEventListener('click', () => {
+      removeRole(role.id);
+    });
+    
+    // Обновление радиобаттона при изменении логина
+    const loginInput = roleBlock.querySelector('.role-login');
+    loginInput.addEventListener('input', () => {
+      // Обновляем логин в объекте роли
+      role.login = loginInput.value.trim();
+      updateRadioButtons();
+    });
+    
+    return roleBlock;
+  }
+
+  // Создание радиобаттона для роли
+  function createRadioButton(role) {
+    const label = document.createElement('label');
+    label.className = 'radio-label';
+    
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'role';
+    radio.value = role.id;
+    radio.id = `role_${role.id}`;
+    if (selectedRoleId === role.id) {
+      radio.checked = true;
+    }
+    
+    const span = document.createElement('span');
+    // Берем логин из DOM, если блок уже создан, иначе из объекта роли
+    const roleBlock = document.querySelector(`[data-role-id="${role.id}"]`);
+    if (roleBlock) {
+      const loginInput = roleBlock.querySelector('.role-login');
+      span.textContent = loginInput ? loginInput.value.trim() || 'Новая запись' : (role.login || 'Новая запись');
+    } else {
+      span.textContent = role.login || 'Новая запись';
+    }
+    
+    label.appendChild(radio);
+    label.appendChild(span);
+    
+    radio.addEventListener('change', () => {
+      if (radio.checked) {
+        selectedRoleId = role.id;
+      }
+    });
+    
+    return label;
+  }
+
+  // Обновление радиобаттонов
+  function updateRadioButtons() {
+    radioGroup.innerHTML = '';
+    roles.forEach(role => {
+      const radioBtn = createRadioButton(role);
+      radioGroup.appendChild(radioBtn);
+    });
+  }
+
+  // Обновление блоков ролей
+  function updateRolesContainer() {
+    rolesContainer.innerHTML = '';
+    roles.forEach(role => {
+      const roleBlock = createRoleBlock(role);
+      rolesContainer.appendChild(roleBlock);
+    });
+  }
+
+  // Добавление новой роли
+  function addRole() {
+    const newRole = {
+      id: generateRoleId(),
+      login: '',
+      password: ''
+    };
+    roles.push(newRole);
+    selectedRoleId = newRole.id;
+    updateRadioButtons();
+    updateRolesContainer();
+  }
+
+  // Удаление роли
+  function removeRole(roleId) {
+    if (roles.length <= 1) {
+      alert('Должна быть хотя бы одна роль');
+      return;
+    }
+    
+    roles = roles.filter(r => r.id !== roleId);
+    
+    // Если удалена выбранная роль, выбираем первую
+    if (selectedRoleId === roleId) {
+      selectedRoleId = roles.length > 0 ? roles[0].id : null;
+    }
+    
+    updateRadioButtons();
+    updateRolesContainer();
+  }
+
+  // Сохранение данных ролей из DOM
+  function saveRolesFromDOM() {
+    roles.forEach(role => {
+      const roleBlock = document.querySelector(`[data-role-id="${role.id}"]`);
+      if (roleBlock) {
+        const loginInput = roleBlock.querySelector('.role-login');
+        const passwordInput = roleBlock.querySelector('.role-password');
+        role.login = loginInput.value.trim();
+        role.password = passwordInput.value.trim();
+      }
+    });
+  }
+
   // Загружаем сохраненные настройки
-  chrome.storage.sync.get([
-    'loginFieldName',
-    'passwordFieldName',
-    'loginValue',
-    'passwordValue',
-    'autoLogin'
-  ], (result) => {
-    loginFieldNameInput.value = result.loginFieldName || 'Логин';
-    passwordFieldNameInput.value = result.passwordFieldName || 'Пароль';
-    loginValueInput.value = result.loginValue || 'admin';
-    passwordValueInput.value = result.passwordValue || 'admin123';
+  chrome.storage.sync.get(['roles', 'selectedRoleId', 'autoLogin'], (result) => {
+    // Инициализация ролей по умолчанию
+    if (result.roles && result.roles.length > 0) {
+      roles = result.roles;
+    } else {
+      roles = [
+        { id: generateRoleId(), login: 'admin', password: 'admin123' },
+        { id: generateRoleId(), login: 'mbos', password: '' }
+      ];
+    }
+    
+    selectedRoleId = result.selectedRoleId || (roles.length > 0 ? roles[0].id : null);
     autoLoginCheckbox.checked = result.autoLogin || false;
+    
+    updateRadioButtons();
+    updateRolesContainer();
   });
 
   // Переключение видимости настроек
@@ -31,15 +177,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const isVisible = settingsPanel.style.display !== 'none';
     settingsPanel.style.display = isVisible ? 'none' : 'block';
     settingsBtn.textContent = isVisible ? 'Настройки' : 'Скрыть настройки';
+    
+    // Изменяем размер виджета
+    if (isVisible) {
+      document.body.classList.remove('expanded');
+    } else {
+      document.body.classList.add('expanded');
+    }
+  });
+
+  // Добавление новой роли
+  addRoleBtn.addEventListener('click', () => {
+    addRole();
   });
 
   // Сохранение настроек
   saveBtn.addEventListener('click', () => {
+    saveRolesFromDOM();
+    
     const settings = {
-      loginFieldName: loginFieldNameInput.value.trim() || 'Логин',
-      passwordFieldName: passwordFieldNameInput.value.trim() || 'Пароль',
-      loginValue: loginValueInput.value.trim() || 'admin',
-      passwordValue: passwordValueInput.value.trim() || 'admin123',
+      roles: roles,
+      selectedRoleId: selectedRoleId,
       autoLogin: autoLoginCheckbox.checked
     };
 
@@ -56,23 +214,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
   executeBtn.addEventListener('click', async () => {
     try {
+      // Сохраняем данные из DOM перед выполнением
+      saveRolesFromDOM();
+      
       // Получаем текущую вкладку
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       // Получаем настройки
-      const settings = await chrome.storage.sync.get([
-        'loginFieldName',
-        'passwordFieldName',
-        'loginValue',
-        'passwordValue',
-        'autoLogin'
-      ]);
+      const settings = await chrome.storage.sync.get(['roles', 'selectedRoleId', 'autoLogin']);
+      
+      // Находим выбранную роль
+      const selectedRole = settings.roles?.find(r => r.id === settings.selectedRoleId) || 
+                          (settings.roles && settings.roles.length > 0 ? settings.roles[0] : null);
+      
+      if (!selectedRole) {
+        alert('Не выбрана роль');
+        return;
+      }
 
       // Выполняем скрипт на странице
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: executeMainFunction,
-        args: [settings]
+        args: [{
+          loginValue: selectedRole.login || '',
+          passwordValue: selectedRole.password || '',
+          autoLogin: settings.autoLogin || false
+        }, tab.url]
       });
 
       // Закрываем popup
@@ -85,27 +253,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Функция, которая выполняется на странице
-function executeMainFunction(settings) {
+function executeMainFunction(settings, originalUrl) {
   // Очищаем localStorage
   localStorage.clear();
   
-  // Получаем настройки с дефолтными значениями
-  const loginFieldName = settings.loginFieldName || 'Логин';
-  const passwordFieldName = settings.passwordFieldName || 'Пароль';
-  const loginValue = settings.loginValue || 'admin';
-  const passwordValue = settings.passwordValue || 'admin123';
+  const loginValue = settings.loginValue || '';
+  const passwordValue = settings.passwordValue || '';
 
-  // Сохраняем настройки в sessionStorage для использования после перезагрузки
+  // Сохраняем настройки и исходный URL в sessionStorage для использования после перезагрузки
   // content.js будет использовать эти настройки для заполнения формы
   sessionStorage.setItem('storageClearerSettings', JSON.stringify({
-    loginFieldName,
-    passwordFieldName,
+    loginFieldName: 'Логин',
+    passwordFieldName: 'Пароль',
     loginValue,
     passwordValue,
-    autoLogin: settings.autoLogin || false
+    autoLogin: settings.autoLogin || false,
+    originalUrl: originalUrl
   }));
 
   // Перезагружаем страницу
   window.location.reload();
 }
-
