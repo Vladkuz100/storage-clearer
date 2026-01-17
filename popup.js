@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsPanel = document.getElementById('settingsPanel');
   const saveBtn = document.getElementById('saveBtn');
-  const statusDiv = document.getElementById('status');
   const radioGroup = document.getElementById('radioGroup');
   const rolesContainer = document.getElementById('rolesContainer');
   const addRoleBtn = document.getElementById('addRoleBtn');
@@ -180,9 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Изменяем размер виджета
     if (isVisible) {
-      document.body.classList.remove('expanded');
+      document.documentElement.classList.remove('expanded');
     } else {
-      document.body.classList.add('expanded');
+      document.documentElement.classList.add('expanded');
     }
   });
 
@@ -201,14 +200,17 @@ document.addEventListener('DOMContentLoaded', () => {
       autoLogin: autoLoginCheckbox.checked
     };
 
+    const originalText = saveBtn.textContent;
+    
     chrome.storage.sync.set(settings, () => {
-      statusDiv.textContent = 'Настройки сохранены!';
-      statusDiv.className = 'status-message success';
+      // Временно меняем текст кнопки
+      saveBtn.textContent = '✓ Сохранено успешно';
+      saveBtn.style.backgroundColor = '#34c759';
       
       setTimeout(() => {
-        statusDiv.textContent = '';
-        statusDiv.className = 'status-message';
-      }, 2000);
+        saveBtn.textContent = originalText;
+        saveBtn.style.backgroundColor = '';
+      }, 600);
     });
   });
 

@@ -26,15 +26,26 @@
     </button>
 
     <div class="form-group">
-      <label class="toggle-label">
-        <input type="checkbox" id="autoLogin">
-        <span class="toggle-text">Автоматический вход</span>
-      </label>
-      <p class="toggle-description">Автоматически нажимать кнопку "Далее" после заполнения формы</p>
+      <div class="switch-label">
+        <div class="switch-text-with-info">
+          <span class="switch-text">Автоматический вход</span>
+          <span class="info-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span class="info-tooltip">Автоматически нажимать кнопку "Далее" после заполнения формы</span>
+          </span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoLogin">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
     <button id="saveBtn" class="btn btn-primary">Сохранить настройки</button>
-    <div id="status" class="status-message"></div>
   </div>
   <script src="options.js"></script>
 </body>
