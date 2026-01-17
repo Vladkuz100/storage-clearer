@@ -1,4 +1,4 @@
-# Fresh Start - Chrome Extension
+# Fresh Start - Chrome Extension 1.4.0
 
 Простое расширение для Chrome, которое очищает localStorage текущей страницы, перезагружает её и автоматически заполняет форму авторизации.
 
