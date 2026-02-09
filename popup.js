@@ -267,12 +267,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Функция для страницы /login: только заполнение формы и нажатие «Далее», без перезагрузки и редиректа
+// Функция для страницы /login: заполнение формы, «Далее», при наличии referrer — редирект на предыдущую страницу
 function executeOnLoginPage(settings) {
   const loginFieldName = 'Логин';
   const passwordFieldName = 'Пароль';
   const loginValue = settings.loginValue || '';
   const passwordValue = settings.passwordValue || '';
+
+  // Страница, с которой пользователь попал на /login (если есть и того же origin)
+  let previousUrl = '';
+  try {
+    const ref = document.referrer;
+    if (ref && ref.length > 0) {
+      const refOrigin = new URL(ref).origin;
+      if (refOrigin === location.origin) previousUrl = ref;
+    }
+  } catch (_) {}
 
   function findField(fieldName, isPassword) {
     const allInputs = Array.from(document.querySelectorAll('input, textarea, select'));
@@ -331,6 +341,12 @@ function executeOnLoginPage(settings) {
     setTimeout(() => {
       const btn = findNextButton();
       if (btn && !btn.disabled) btn.click();
+      // Если известна предыдущая страница — через пару секунд редирект (дать время на обработку входа)
+      if (previousUrl) {
+        setTimeout(() => {
+          window.location.href = previousUrl;
+        }, 1000);
+      }
     }, 300);
   }
 }
