@@ -234,16 +234,29 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Выполняем скрипт на странице
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: executeMainFunction,
-        args: [{
-          loginValue: selectedRole.login || '',
-          passwordValue: selectedRole.password || '',
-          autoLogin: settings.autoLogin || false
-        }, tab.url]
-      });
+      const payload = {
+        loginValue: selectedRole.login || '',
+        passwordValue: selectedRole.password || '',
+        autoLogin: settings.autoLogin || false
+      };
+
+      const isLoginPage = tab.url && tab.url.toLowerCase().includes('/login');
+
+      if (isLoginPage) {
+        // Уже на странице /login — только заполняем форму и нажимаем «Далее»
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: executeOnLoginPage,
+          args: [payload]
+        });
+      } else {
+        // Не на /login — полный сценарий: очистка, перезагрузка, заполнение, редирект
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: executeMainFunction,
+          args: [payload, tab.url]
+        });
+      }
 
       // Закрываем popup
       window.close();
@@ -254,16 +267,81 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Функция, которая выполняется на странице
-function executeMainFunction(settings, originalUrl) {
-  // Очищаем localStorage
-  localStorage.clear();
-  
+// Функция для страницы /login: только заполнение формы и нажатие «Далее», без перезагрузки и редиректа
+function executeOnLoginPage(settings) {
+  const loginFieldName = 'Логин';
+  const passwordFieldName = 'Пароль';
   const loginValue = settings.loginValue || '';
   const passwordValue = settings.passwordValue || '';
 
-  // Сохраняем настройки и исходный URL в sessionStorage для использования после перезагрузки
-  // content.js будет использовать эти настройки для заполнения формы
+  function findField(fieldName, isPassword) {
+    const allInputs = Array.from(document.querySelectorAll('input, textarea, select'));
+    const fieldNameLower = fieldName.toLowerCase();
+    for (const input of allInputs) {
+      if (isPassword && input.type !== 'password') continue;
+      if (!isPassword && input.type === 'password') continue;
+      const name = (input.name || '').toLowerCase();
+      const id = (input.id || '').toLowerCase();
+      const placeholder = (input.placeholder || '').toLowerCase();
+      const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
+      const label = (input.labels?.[0]?.textContent || '').toLowerCase();
+      if (name.includes(fieldNameLower) || id.includes(fieldNameLower) ||
+          placeholder.includes(fieldNameLower) || ariaLabel.includes(fieldNameLower) || label.includes(fieldNameLower)) {
+        return input;
+      }
+    }
+    return null;
+  }
+
+  function setFieldValue(field, value) {
+    field.value = value;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    field.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+
+  function findNextButton() {
+    const allButtons = Array.from(document.querySelectorAll('button, input[type="submit"], [role="button"]'));
+    for (const button of allButtons) {
+      const text = (button.textContent || button.innerText || '').trim();
+      const value = (button.value || '').trim();
+      if (text.toLowerCase().includes('далее') || value.toLowerCase().includes('далее')) return button;
+    }
+    const submitButtons = document.querySelectorAll('button[type="submit"], input[type="submit"]');
+    for (const button of submitButtons) {
+      if ((button.className || '').includes('btn') || button.classList.toString().includes('btn')) {
+        const text = (button.textContent || button.innerText || '').trim();
+        if (!text || text.toLowerCase().includes('далее')) return button;
+      }
+    }
+    const forms = document.querySelectorAll('form');
+    for (const form of forms) {
+      const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+      if (btn) return btn;
+    }
+    return null;
+  }
+
+  const loginField = findField(loginFieldName, false);
+  if (loginField) setFieldValue(loginField, loginValue);
+  const passwordField = findField(passwordFieldName, true);
+  if (passwordField) setFieldValue(passwordField, passwordValue);
+
+  if (settings.autoLogin) {
+    setTimeout(() => {
+      const btn = findNextButton();
+      if (btn && !btn.disabled) btn.click();
+    }, 300);
+  }
+}
+
+// Функция, которая выполняется на странице (не /login): очистка, перезагрузка, затем content.js заполнит форму и сделает редирект
+function executeMainFunction(settings, originalUrl) {
+  localStorage.clear();
+
+  const loginValue = settings.loginValue || '';
+  const passwordValue = settings.passwordValue || '';
+
   sessionStorage.setItem('storageClearerSettings', JSON.stringify({
     loginFieldName: 'Логин',
     passwordFieldName: 'Пароль',
@@ -273,6 +351,5 @@ function executeMainFunction(settings, originalUrl) {
     originalUrl: originalUrl
   }));
 
-  // Перезагружаем страницу
   window.location.reload();
 }
